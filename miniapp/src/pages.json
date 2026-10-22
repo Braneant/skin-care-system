@@ -1,0 +1,35 @@
+{
+  "pages": [
+    { "path": "pages/home/index", "style": { "navigationBarTitleText": "智能护肤" } },
+    { "path": "pages/login/index", "style": { "navigationBarTitleText": "登录" } },
+    { "path": "pages/survey/index", "style": { "navigationBarTitleText": "肤质问卷" } },
+    { "path": "pages/profile/skin", "style": { "navigationBarTitleText": "肌肤档案" } },
+    { "path": "pages/detect/upload", "style": { "navigationBarTitleText": "AI 测肤" } },
+    { "path": "pages/detect/result", "style": { "navigationBarTitleText": "检测报告" } },
+    { "path": "pages/plan/index", "style": { "navigationBarTitleText": "护肤方案" } },
+    { "path": "pages/checkin/index", "style": { "navigationBarTitleText": "护肤打卡" } },
+    { "path": "pages/trend/index", "style": { "navigationBarTitleText": "趋势记录" } },
+    { "path": "pages/mine/index", "style": { "navigationBarTitleText": "我的" } },
+    { "path": "pages/article/list", "style": { "navigationBarTitleText": "科普文章" } },
+    { "path": "pages/article/detail", "style": { "navigationBarTitleText": "文章详情" } },
+    { "path": "pages/consult/index", "style": { "navigationBarTitleText": "咨询预约" } }
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#f56c6c",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/home/index", "text": "首页" },
+      { "pagePath": "pages/checkin/index", "text": "打卡" },
+      { "pagePath": "pages/plan/index", "text": "方案" },
+      { "pagePath": "pages/mine/index", "text": "我的" }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "智能护肤",
+    "navigationBarBackgroundColor": "#fce8ee",
+    "backgroundColor": "#f7f7f7"
+  }
+}

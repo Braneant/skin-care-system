@@ -1,0 +1,25 @@
+{
+  "name": "智能护肤",
+  "appid": "wx9727cb6d05ecfa46",
+  "description": "基于 AI 大模型 + 微信小程序的肌肤养护管理系统",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx9727cb6d05ecfa46",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true
+  },
+  "h5": {
+    "title": "智能护肤",
+    "router": {
+      "mode": "hash",
+      "base": "/"
+    }
+  }
+}

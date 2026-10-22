@@ -1,0 +1,26 @@
+{
+  "name": "skin-care-miniapp",
+  "version": "1.0.0",
+  "description": "基于 AI 大模型 + 微信小程序的肌肤养护管理系统 - 小程序端（uni-app）",
+  "scripts": {
+    "dev:h5": "uni",
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build:h5": "uni build",
+    "build:mp-weixin": "uni build -p mp-weixin"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-4020420240722002",
+    "@dcloudio/uni-components": "3.0.0-4020420240722002",
+    "@dcloudio/uni-h5": "3.0.0-4020420240722002",
+    "@dcloudio/uni-mp-weixin": "3.0.0-4020420240722002",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "^3.4.8",
+    "@dcloudio/uni-cli-shared": "3.0.0-4020420240722002",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4020420240722002",
+    "sass": "^1.77.8",
+    "vite": "5.2.8"
+  }
+}
