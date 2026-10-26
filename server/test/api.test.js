@@ -136,12 +136,13 @@ async function main() {
   r = await req('POST', '/api/wx/auth/login', { body: {} });
   assert(r.status === 400 && r.json && r.json.code === 400, 'wx 登录缺少 code 返回 400', fmt(r));
 
-  // ---------- 6. AI 检测（本地引擎降级） ----------
-  console.log('\n【6. AI 检测 /detect/analyze（本地引擎）】');
+  // ---------- 6. AI 检测 ----------
+  console.log('\n【6. AI 检测 /detect/analyze】');
   r = await req('POST', '/api/wx/detect/analyze', { wxToken, body: { imageBase64: TINY_PNG_BASE64 } });
   assert(r.status === 200 && r.json && r.json.code === 0, 'analyze 返回成功', fmt(r));
   const report = r.json && r.json.data;
-  assert(report && report.engine === 'local', 'engine=local（无 Key 降级）', report && `engine=${report.engine}`);
+  // engine 取决于环境配置：无 DEEPSEEK_API_KEY→local，有→deepseek（两者均合法）
+  assert(report && ['local', 'deepseek'].includes(report.engine), 'engine 为 local/deepseek（按配置）', report && `engine=${report.engine}`);
   assert(report && typeof report.score === 'number' && report.score >= 0 && report.score <= 100, 'score 为 0-100 数字', report && `score=${report.score}`);
   assert(report && typeof report.skinType === 'string', '返回 skinType', report && `skinType=${report.skinType}`);
   assert(report && Array.isArray(report.issues), '返回 issues 数组', report && `issues=${report.issues.length}条`);

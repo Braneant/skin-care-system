@@ -12,7 +12,18 @@
     { "path": "pages/mine/index", "style": { "navigationBarTitleText": "我的" } },
     { "path": "pages/article/list", "style": { "navigationBarTitleText": "科普文章" } },
     { "path": "pages/article/detail", "style": { "navigationBarTitleText": "文章详情" } },
-    { "path": "pages/consult/index", "style": { "navigationBarTitleText": "咨询预约" } }
+    { "path": "pages/consult/index", "style": { "navigationBarTitleText": "咨询预约" } },
+    { "path": "pages/badges/index", "style": { "navigationBarTitleText": "我的徽章" } },
+    { "path": "pages/ingredient/list", "style": { "navigationBarTitleText": "成分速查" } },
+    { "path": "pages/ingredient/detail", "style": { "navigationBarTitleText": "成分详情" } },
+    { "path": "pages/product/list", "style": { "navigationBarTitleText": "产品库" } },
+    { "path": "pages/product/detail", "style": { "navigationBarTitleText": "产品详情" } },
+    { "path": "pages/product/cabinet", "style": { "navigationBarTitleText": "我的产品柜" } },
+    { "path": "pages/product/usage", "style": { "navigationBarTitleText": "开封与使用记录" } },
+    { "path": "pages/diary/index", "style": { "navigationBarTitleText": "肤质照片日记" } },
+    { "path": "pages/diary/compare", "style": { "navigationBarTitleText": "照片对比", "navigationBarBackgroundColor": "#000000", "navigationBarTextStyle": "white" } },
+    { "path": "pages/report/timeline", "style": { "navigationBarTitleText": "报告时间轴" } },
+    { "path": "pages/followup/index", "style": { "navigationBarTitleText": "医生随访" } }
   ],
   "tabBar": {
     "color": "#999999",

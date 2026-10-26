@@ -8,7 +8,26 @@
       </view>
     </view>
 
+    <!-- 累计统计卡 -->
+    <view class="card stats-card" v-if="userStore.isLogin">
+      <view class="stat">
+        <text class="stat-value">{{ stats.totalDays }}</text>
+        <text class="stat-label">累计打卡(天)</text>
+      </view>
+      <view class="stat">
+        <text class="stat-value">{{ stats.longestStreak }}</text>
+        <text class="stat-label">最长连续(天)</text>
+      </view>
+      <view class="stat">
+        <text class="stat-value">{{ weekRateText }}</text>
+        <text class="stat-label">本周完成率</text>
+      </view>
+    </view>
+
     <view class="card menu">
+      <view class="menu-item" @click="go('/pages/badges/index')">
+        <text>🏅 我的徽章</text><text class="arrow">›</text>
+      </view>
       <view class="menu-item" @click="go('/pages/profile/skin')">
         <text>📋 我的肌肤档案</text><text class="arrow">›</text>
       </view>
@@ -17,6 +36,21 @@
       </view>
       <view class="menu-item" @click="go('/pages/trend/index')">
         <text>📈 趋势记录</text><text class="arrow">›</text>
+      </view>
+      <view class="menu-item" @click="go('/pages/product/cabinet')">
+        <text>💄 我的产品柜</text><text class="arrow">›</text>
+      </view>
+      <view class="menu-item" @click="go('/pages/product/usage')">
+        <text>⏱️ 开封与使用记录</text><text class="arrow">›</text>
+      </view>
+      <view class="menu-item" @click="go('/pages/diary/index')">
+        <text>📷 肤质照片日记</text><text class="arrow">›</text>
+      </view>
+      <view class="menu-item" @click="go('/pages/report/timeline')">
+        <text>🗂️ 报告时间轴</text><text class="arrow">›</text>
+      </view>
+      <view class="menu-item" @click="go('/pages/followup/index')">
+        <text>💬 医生随访</text><text class="arrow">›</text>
       </view>
       <view class="menu-item" @click="go('/pages/article/list')">
         <text>📖 科普文章</text><text class="arrow">›</text>
@@ -44,13 +78,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useUserStore } from '@/store/user';
 import { submitFeedback, getMyAdvice } from '@/api/content';
+import { getStats } from '@/api/checkin';
 import { goPage } from '@/utils/nav';
 
 const userStore = useUserStore();
 const advice = ref<any[]>([]);
+const stats = reactive<any>({ totalDays: 0, longestStreak: 0, weekRate: 0 });
+
+const weekRateText = computed(() => `${Math.round((stats.weekRate || 0) * 100)}%`);
 
 function go(url: string) {
   if (!userStore.isLogin && url !== '/pages/login/index') {
@@ -89,6 +127,14 @@ onMounted(async () => {
     } catch (e) {
       /* ignore */
     }
+    try {
+      const s = await getStats();
+      stats.totalDays = s.totalDays || 0;
+      stats.longestStreak = s.longestStreak || 0;
+      stats.weekRate = s.weekRate || 0;
+    } catch (e) {
+      /* ignore */
+    }
   }
 });
 </script>
@@ -114,6 +160,25 @@ onMounted(async () => {
 .name {
   font-size: 32rpx;
   font-weight: 600;
+}
+.stats-card {
+  display: flex;
+}
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+.stat-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #f56c6c;
+}
+.stat-label {
+  font-size: 22rpx;
+  color: #999;
 }
 .menu-item {
   display: flex;

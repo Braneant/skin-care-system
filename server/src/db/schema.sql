@@ -287,3 +287,142 @@ CREATE TABLE IF NOT EXISTS operation_logs (
   ip TEXT,
   created_at TEXT
 );
+
+-- ⑳ 用户徽章（Phase A：轻量习惯养成）
+CREATE TABLE IF NOT EXISTS user_badge (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  badge_code TEXT NOT NULL,
+  earned_at TEXT,
+  created_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES wx_users(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_badge ON user_badge(user_id, badge_code);
+CREATE INDEX IF NOT EXISTS idx_user_badge_user ON user_badge(user_id);
+
+-- ㉑ 成分库（Phase B：专业美妆顾问）
+CREATE TABLE IF NOT EXISTS ingredients (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  en_name TEXT,
+  aliases TEXT,
+  functions TEXT,
+  efficacy TEXT,
+  risk_level TEXT,
+  suitable_skin TEXT,
+  taboo TEXT,
+  description TEXT,
+  status INTEGER DEFAULT 1,
+  created_at TEXT,
+  updated_at TEXT,
+  deleted_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ingredient_name ON ingredients(name);
+CREATE INDEX IF NOT EXISTS idx_ingredient_status ON ingredients(status);
+
+-- ㉒ 方案步骤—产品关联
+CREATE TABLE IF NOT EXISTS plan_step_product (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER NOT NULL,
+  period TEXT NOT NULL,
+  step_key TEXT NOT NULL,
+  product_id INTEGER NOT NULL,
+  created_at TEXT,
+  updated_at TEXT,
+  FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_plan_step_product ON plan_step_product(plan_id, period, step_key);
+CREATE INDEX IF NOT EXISTS idx_psp_product ON plan_step_product(product_id);
+
+-- ㉓ 我的产品柜
+CREATE TABLE IF NOT EXISTS user_product (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  product_id INTEGER NOT NULL,
+  status TEXT DEFAULT 'using',
+  matched_score INTEGER,
+  added_at TEXT,
+  created_at TEXT,
+  updated_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES wx_users(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_product ON user_product(user_id, product_id);
+CREATE INDEX IF NOT EXISTS idx_user_product_user ON user_product(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_product_product ON user_product(product_id);
+
+-- ㉔ 产品开封/有效期
+CREATE TABLE IF NOT EXISTS product_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  product_id INTEGER NOT NULL,
+  opened_at TEXT,
+  expire_months INTEGER DEFAULT 12,
+  note TEXT,
+  created_at TEXT,
+  updated_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES wx_users(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_product_usage ON product_usage(user_id, product_id);
+CREATE INDEX IF NOT EXISTS idx_product_usage_user ON product_usage(user_id);
+
+-- ㉕ 使用记录时间轴
+CREATE TABLE IF NOT EXISTS usage_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  product_id INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  note TEXT,
+  skin_snapshot TEXT,
+  created_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES wx_users(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_usage_log_user_created ON usage_log(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_usage_log_product ON usage_log(product_id);
+
+-- ㉖ 提醒设置（Phase C：全周期健康管家）
+CREATE TABLE IF NOT EXISTS reminders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  schedule_time TEXT,
+  enabled INTEGER DEFAULT 1,
+  extra TEXT,
+  created_at TEXT,
+  updated_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES wx_users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_reminder_user_type ON reminders(user_id, type);
+
+-- ㉗ 肤质照片对比日记
+CREATE TABLE IF NOT EXISTS photo_diary (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  image_url TEXT NOT NULL,
+  note TEXT,
+  detect_record_id INTEGER,
+  taken_at TEXT,
+  created_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES wx_users(id) ON DELETE CASCADE,
+  FOREIGN KEY (detect_record_id) REFERENCES detect_records(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_photo_diary_user_taken ON photo_diary(user_id, taken_at);
+
+-- ㉘ 医生轻随访消息
+CREATE TABLE IF NOT EXISTS followup_message (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  doctor_id INTEGER,
+  sender TEXT NOT NULL,
+  content TEXT NOT NULL,
+  is_read INTEGER DEFAULT 0,
+  created_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES wx_users(id) ON DELETE CASCADE,
+  FOREIGN KEY (doctor_id) REFERENCES admin_users(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_followup_user_created ON followup_message(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_followup_user_read ON followup_message(user_id, is_read);
+

@@ -53,6 +53,13 @@ class CheckinRepo extends BaseRepo {
     ).all(userId, limit);
   }
 
+  /** 全量打卡记录（升序，供统计/徽章计算，不截断） */
+  listAllByUser(userId) {
+    return this.prepare(
+      'SELECT * FROM checkin_records WHERE user_id = ? ORDER BY checkin_date ASC'
+    ).all(userId);
+  }
+
   /** 近 N 日有打卡行为的去重用户数 */
   activeUsersByCheckin(days) {
     const sinceIso = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();

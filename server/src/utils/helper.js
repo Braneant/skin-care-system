@@ -79,6 +79,29 @@ function isoToDate(iso) {
   return `${y}-${m}-${day}`;
 }
 
+/** Date → YYYY-MM-DD（本地时区） */
+function dateToStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** 在 YYYY-MM-DD 上偏移 n 天（可正可负），返回 YYYY-MM-DD */
+function addDays(dateStr, n) {
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return dateToStr(dt);
+}
+
+/** 校验 YYYY-MM-DD 为合法真实日历日（正则 + UTC 回读一致，排除 2-30/13 月/0 月等） */
+function isValidDateStr(str) {
+  if (typeof str !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
+  const [y, m, d] = str.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
 module.exports = {
   now,
   today,
@@ -88,4 +111,7 @@ module.exports = {
   pageParams,
   pageResult,
   isoToDate,
+  dateToStr,
+  addDays,
+  isValidDateStr,
 };

@@ -57,6 +57,11 @@ const config = {
   // 数据库
   dbPath: process.env.DB_PATH || './data/skin_care.db',
 
+  // 天气/UV（Phase C，无 Key 走 mock 规则降级）
+  weatherProvider: process.env.WEATHER_PROVIDER || 'mock',
+  weatherApiKey: process.env.WEATHER_API_KEY || '',
+  weatherCity: process.env.WEATHER_CITY || '北京',
+
   // 跨域
   corsOrigins: toArray(process.env.CORS_ORIGINS, [
     'http://localhost:5173',

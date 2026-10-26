@@ -42,6 +42,11 @@ const PERMISSIONS = [
   { code: 'content:notice:add', name: '新增公告', type: 'button', parent: 'content:notice:list', sort: 1 },
   { code: 'content:notice:edit', name: '编辑公告', type: 'button', parent: 'content:notice:list', sort: 2 },
   { code: 'content:notice:delete', name: '删除公告', type: 'button', parent: 'content:notice:list', sort: 3 },
+  // 成分库（Phase B 内容运营）
+  { code: 'content:ingredient:list', name: '成分库管理', type: 'button', parent: 'content', sort: 4 },
+  { code: 'content:ingredient:add', name: '成分库新增', type: 'button', parent: 'content', sort: 5 },
+  { code: 'content:ingredient:edit', name: '成分库编辑', type: 'button', parent: 'content', sort: 6 },
+  { code: 'content:ingredient:delete', name: '成分库删除', type: 'button', parent: 'content', sort: 7 },
   // 肌肤字典
   { code: 'skin:dict:list', name: '肌肤数据', type: 'menu', parent: null, route: '/skin-dict', component: 'skin-dict/index', icon: 'Collection', sort: 4 },
   { code: 'skin:dict:add', name: '新增字典', type: 'button', parent: 'skin:dict:list', sort: 1 },
@@ -57,6 +62,7 @@ const PERMISSIONS = [
   { code: 'doctor:patient:view', name: '工作台首页', type: 'menu', parent: 'doctor', route: '/doctor', component: 'doctor/index', icon: 'UserFilled', sort: 1 },
   { code: 'doctor:consult:handle', name: '咨询预约', type: 'menu', parent: 'doctor', route: '/doctor/consultations', component: 'doctor/consultations', icon: 'ChatLineRound', sort: 2 },
   { code: 'doctor:advice:write', name: '撰写建议', type: 'button', parent: 'doctor', sort: 3 },
+  { code: 'doctor:followup:handle', name: '轻随访处理', type: 'button', parent: 'doctor', sort: 4 },
 ];
 
 /** 角色与权限码映射 */
@@ -68,6 +74,7 @@ const ROLE_PERMS = {
     'doctor:patient:view',
     'doctor:advice:write',
     'doctor:consult:handle',
+    'doctor:followup:handle',
     'system',
     'system:user:list',
     'detect:record:list',
@@ -116,6 +123,7 @@ function seed(db) {
   seedAdminUsers(db);
   seedRolePermissions(db);
   seedSkinDict(db);
+  seedIngredients(db);
   seedContent(db);
   seedDemoUser(db);
 }
@@ -224,22 +232,46 @@ function seedContent(db) {
     );
   }
 
-  // 示例产品
-  const productCount = db.prepare('SELECT COUNT(*) AS c FROM products').get().c;
-  if (productCount === 0) {
-    db.prepare(
-      `INSERT INTO products (name, image_url, brand, category, description, ingredients, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`
-    ).run(
-      '神经酰胺修护保湿霜',
-      null,
-      '示例品牌',
-      '保湿修护',
-      '适合干性、敏感性肌肤，帮助修护皮肤屏障。',
-      JSON.stringify(['神经酰胺', '透明质酸', '甘油']),
-      t,
-      t
-    );
+  // 示例产品（Phase B：多产品 + ingredients 关联成分名，按名称幂等插入）
+  const insProduct = db.prepare(
+    `INSERT INTO products (name, image_url, brand, category, description, ingredients, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`
+  );
+  const getProduct = db.prepare('SELECT id FROM products WHERE name = ?');
+  const products = [
+    {
+      name: '神经酰胺修护保湿霜',
+      brand: '示例品牌',
+      category: '保湿修护',
+      description: '适合干性、敏感性肌肤，帮助修护皮肤屏障。',
+      ingredients: ['神经酰胺', '透明质酸', '甘油'],
+    },
+    {
+      name: '烟酰胺控油精华',
+      brand: '示例品牌',
+      category: '精华',
+      description: '控油提亮，改善毛孔与暗沉，适合油性、混合性肌肤。',
+      ingredients: ['烟酰胺', '锌', '透明质酸'],
+    },
+    {
+      name: '水杨酸祛痘爽肤水',
+      brand: '示例品牌',
+      category: '爽肤水',
+      description: '疏通毛孔，改善痘痘黑头，适合油性肌肤。',
+      ingredients: ['水杨酸', '金缕梅', '茶树精油'],
+    },
+    {
+      name: '积雪草舒缓修护乳',
+      brand: '示例品牌',
+      category: '乳液',
+      description: '舒缓泛红，修护敏感肌肤屏障。',
+      ingredients: ['积雪草', '泛醇', '尿囊素', '角鲨烷'],
+    },
+  ];
+  for (const p of products) {
+    if (!getProduct.get(p.name)) {
+      insProduct.run(p.name, null, p.brand, p.category, p.description, JSON.stringify(p.ingredients), t, t);
+    }
   }
 
   // 示例公告
@@ -262,4 +294,54 @@ function seedDemoUser(db) {
   stmt.run('dev_demo_openid', '演示用户', null, t, t);
 }
 
-module.exports = { seed, PERMISSIONS, ROLE_PERMS };
+/** 示例成分（≥20 条，Phase B） */
+const SEED_INGREDIENTS = [
+  { name: '烟酰胺', en_name: 'Niacinamide', aliases: ['维生素B3'], functions: ['控油', '提亮', '修护屏障'], efficacy: '改善毛孔粗大与暗沉，控油提亮，修护皮肤屏障', risk_level: '低', suitable_skin: ['油性', '混合性'], taboo: '部分人群需建立耐受，避免与高浓度酸叠加', description: '烟酰胺是维生素B3衍生物，是公认的多面手成分。' },
+  { name: '透明质酸', en_name: 'Hyaluronic Acid', aliases: ['玻尿酸'], functions: ['保湿'], efficacy: '强效抓水保湿，提升肌肤水润度', risk_level: '低', suitable_skin: ['干性', '油性', '混合性', '中性', '敏感性'], taboo: '需配合锁水产品使用', description: '透明质酸可吸收自身千倍水分。' },
+  { name: '神经酰胺', en_name: 'Ceramide', aliases: [], functions: ['修护屏障', '保湿'], efficacy: '修护皮肤屏障，缓解干燥脱皮', risk_level: '低', suitable_skin: ['干性', '敏感性'], taboo: '无特殊禁忌', description: '神经酰胺是皮肤屏障的重要组成部分。' },
+  { name: '水杨酸', en_name: 'Salicylic Acid', aliases: ['BHA'], functions: ['控油', '去角质', '祛痘'], efficacy: '疏通毛孔，改善痘痘黑头', risk_level: '中', suitable_skin: ['油性', '混合性'], taboo: '孕妇慎用，避免与视黄醇同用', description: '脂溶性酸，可深入毛孔溶解油脂。' },
+  { name: '视黄醇', en_name: 'Retinol', aliases: ['维生素A醇'], functions: ['抗老', '淡纹'], efficacy: '促进胶原生成，淡化细纹', risk_level: '中', suitable_skin: ['干性', '中性'], taboo: '孕妇禁用，需建立耐受，夜间使用', description: '抗老标杆成分，刺激性需逐步耐受。' },
+  { name: '积雪草', en_name: 'Centella Asiatica', aliases: ['积雪草苷'], functions: ['舒缓', '修护'], efficacy: '舒缓泛红，修护受损肌肤', risk_level: '低', suitable_skin: ['敏感性', '干性'], taboo: '无特殊禁忌', description: '积雪草是经典的舒缓修护植物成分。' },
+  { name: '泛醇', en_name: 'Panthenol', aliases: ['维生素B5'], functions: ['保湿', '修护'], efficacy: '保湿修复，温和不刺激', risk_level: '低', suitable_skin: ['干性', '油性', '混合性', '中性', '敏感性'], taboo: '无特殊禁忌', description: '泛醇温和亲肤，适合敏感肌。' },
+  { name: '维生素C', en_name: 'Vitamin C', aliases: ['抗坏血酸'], functions: ['抗氧化', '提亮'], efficacy: '抗氧化提亮，淡化色斑', risk_level: '中', suitable_skin: ['中性', '油性', '混合性'], taboo: '需注意光稳定性，与防晒搭配', description: '经典抗氧化剂，提亮肤色。' },
+  { name: '角鲨烷', en_name: 'Squalane', aliases: [], functions: ['保湿', '亲肤'], efficacy: '亲肤保湿，改善干燥', risk_level: '低', suitable_skin: ['干性', '敏感性', '中性'], taboo: '无特殊禁忌', description: '角鲨烷与皮脂结构相近，亲肤性好。' },
+  { name: '甘油', en_name: 'Glycerin', aliases: [], functions: ['保湿'], efficacy: '基础保湿剂，吸湿锁水', risk_level: '低', suitable_skin: ['干性', '油性', '混合性', '中性', '敏感性'], taboo: '无特殊禁忌', description: '最常见的基础保湿成分。' },
+  { name: '壬二酸', en_name: 'Azelaic Acid', aliases: [], functions: ['抗炎', '祛痘', '淡印'], efficacy: '抗炎祛痘，淡化痘印', risk_level: '中', suitable_skin: ['油性', '混合性'], taboo: '初期可能有刺痒感', description: '壬二酸兼具抗炎与美白淡印。' },
+  { name: '果酸', en_name: 'AHA', aliases: ['α-羟基酸'], functions: ['去角质', '提亮'], efficacy: '去除老废角质，提亮肤色', risk_level: '中', suitable_skin: ['油性', '中性'], taboo: '敏感肌慎用，注意防晒', description: '果酸可加速角质代谢。' },
+  { name: '金缕梅', en_name: 'Witch Hazel', aliases: [], functions: ['收敛', '控油'], efficacy: '收敛毛孔，控油清爽', risk_level: '低', suitable_skin: ['油性', '混合性'], taboo: '干性肌肤慎用', description: '金缕梅是传统收敛控油成分。' },
+  { name: '玻色因', en_name: 'Pro-Xylane', aliases: ['羟丙基四氢吡喃三醇'], functions: ['抗老', '紧致'], efficacy: '紧致肌肤，提升弹性', risk_level: '低', suitable_skin: ['干性', '油性', '混合性', '中性', '敏感性'], taboo: '无特殊禁忌', description: '玻色因是温和的抗老成分。' },
+  { name: '胜肽', en_name: 'Peptides', aliases: ['多肽'], functions: ['抗老', '紧致'], efficacy: '抗老紧致，减少细纹', risk_level: '低', suitable_skin: ['干性', '油性', '混合性', '中性', '敏感性'], taboo: '无特殊禁忌', description: '胜肽类成分温和抗老。' },
+  { name: '茶树精油', en_name: 'Tea Tree Oil', aliases: [], functions: ['抑菌', '祛痘'], efficacy: '抑菌抗炎，改善痘痘', risk_level: '中', suitable_skin: ['油性'], taboo: '需稀释使用，敏感肌慎用', description: '茶树精油有天然抑菌作用。' },
+  { name: '尿囊素', en_name: 'Allantoin', aliases: [], functions: ['舒缓', '修护'], efficacy: '舒缓刺激，促进修护', risk_level: '低', suitable_skin: ['敏感性', '干性'], taboo: '无特殊禁忌', description: '尿囊素温和舒缓，促进愈合。' },
+  { name: '乳酸', en_name: 'Lactic Acid', aliases: [], functions: ['去角质', '保湿'], efficacy: '温和去角质，兼具保湿', risk_level: '低', suitable_skin: ['干性', '敏感性'], taboo: '注意防晒', description: '乳酸是较温和的酸类成分。' },
+  { name: '维生素E', en_name: 'Vitamin E', aliases: ['生育酚'], functions: ['抗氧化', '保湿'], efficacy: '抗氧化，滋润保湿', risk_level: '低', suitable_skin: ['干性', '油性', '混合性', '中性', '敏感性'], taboo: '无特殊禁忌', description: '维生素E是经典抗氧化剂。' },
+  { name: '芦荟', en_name: 'Aloe Vera', aliases: ['库拉索芦荟'], functions: ['舒缓', '保湿'], efficacy: '舒缓镇定，补水保湿', risk_level: '低', suitable_skin: ['敏感性', '油性'], taboo: '无特殊禁忌', description: '芦荟是常见的舒缓补水成分。' },
+  { name: '绿茶提取物', en_name: 'Green Tea Extract', aliases: ['茶多酚'], functions: ['抗氧化', '舒缓'], efficacy: '抗氧化，舒缓肌肤', risk_level: '低', suitable_skin: ['干性', '油性', '混合性', '中性', '敏感性'], taboo: '无特殊禁忌', description: '绿茶多酚有抗氧化与舒缓作用。' },
+  { name: '锌', en_name: 'Zinc PCA', aliases: ['吡咯烷酮羧酸锌'], functions: ['控油', '收敛'], efficacy: '控油收敛，抑制炎症', risk_level: '低', suitable_skin: ['油性'], taboo: '干性肌肤慎用', description: '锌类成分常用于控油产品。' },
+];
+
+function seedIngredients(db) {
+  const stmt = db.prepare(
+    `INSERT OR IGNORE INTO ingredients
+     (name, en_name, aliases, functions, efficacy, risk_level, suitable_skin, taboo, description, status, created_at, updated_at)
+     VALUES (@name, @en_name, @aliases, @functions, @efficacy, @risk_level, @suitable_skin, @taboo, @description, 1, @created_at, @updated_at)`
+  );
+  const t = now();
+  for (const ing of SEED_INGREDIENTS) {
+    stmt.run({
+      name: ing.name,
+      en_name: ing.en_name,
+      aliases: JSON.stringify(ing.aliases || []),
+      functions: JSON.stringify(ing.functions || []),
+      efficacy: ing.efficacy || '',
+      risk_level: ing.risk_level || '低',
+      suitable_skin: JSON.stringify(ing.suitable_skin || []),
+      taboo: ing.taboo || '',
+      description: ing.description || '',
+      created_at: t,
+      updated_at: t,
+    });
+  }
+}
+
+module.exports = { seed, PERMISSIONS, ROLE_PERMS, SEED_INGREDIENTS };

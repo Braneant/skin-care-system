@@ -19,6 +19,8 @@ const detectRecordController = require('../controllers/admin/detectRecordControl
 const patientController = require('../controllers/admin/patientController');
 const adviceTemplateController = require('../controllers/admin/adviceTemplateController');
 const consultController = require('../controllers/admin/consultController');
+const ingredientController = require('../controllers/admin/ingredientController');
+const followupController = require('../controllers/admin/followupController');
 
 const router = express.Router();
 
@@ -71,6 +73,12 @@ router.post('/skin-dict', requirePermission('skin:dict:add'), skinDictController
 router.put('/skin-dict/:id', requirePermission('skin:dict:edit'), skinDictController.update);
 router.delete('/skin-dict/:id', requirePermission('skin:dict:delete'), skinDictController.remove);
 
+// 成分库维护
+router.get('/ingredients', requirePermission('content:ingredient:list'), ingredientController.list);
+router.post('/ingredients', requirePermission('content:ingredient:add'), ingredientController.create);
+router.put('/ingredients/:id', requirePermission('content:ingredient:edit'), ingredientController.update);
+router.delete('/ingredients/:id', requirePermission('content:ingredient:delete'), ingredientController.remove);
+
 // 反馈
 router.get('/feedback', requirePermission('feedback:list'), feedbackController.list);
 router.post('/feedback/:id/reply', requirePermission('feedback:reply'), feedbackController.reply);
@@ -93,5 +101,10 @@ router.delete('/advice-templates/:id', requirePermission('doctor:advice:write'),
 // 咨询预约
 router.get('/consultations', requirePermission('doctor:consult:handle'), consultController.list);
 router.patch('/consultations/:id', requirePermission('doctor:consult:handle'), consultController.patch);
+
+// 医生轻随访
+router.get('/followup', requirePermission('doctor:followup:handle'), followupController.list);
+router.post('/followup/:userId/reply', requirePermission('doctor:followup:handle'), followupController.reply);
+router.post('/followup/:userId/read', requirePermission('doctor:followup:handle'), followupController.markRead);
 
 module.exports = router;
