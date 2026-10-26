@@ -9,6 +9,30 @@
         <view class="progress-bar" v-if="plan.stepProgress && plan.stepProgress.total > 0">
           <view class="progress-fill" :style="{ width: progressPercent + '%' }"></view>
         </view>
+        <!-- 方案依据条 -->
+        <view class="basis-row">
+          <text class="basis-text">🎯 个性化方案 · 建议每 7 天复测调整</text>
+          <text class="basis-link" @click="goRetest">去复测 ›</text>
+        </view>
+      </view>
+
+      <!-- 今日执行总览 -->
+      <view v-if="plan.stepProgress" class="card">
+        <view class="section-title">今日执行总览</view>
+        <view class="overview-cols">
+          <view class="ov-col">
+            <text class="ov-num">{{ morningStat.done }}/{{ morningStat.total }}</text>
+            <text class="ov-label">晨间</text>
+          </view>
+          <view class="ov-col">
+            <text class="ov-num">{{ eveningStat.done }}/{{ eveningStat.total }}</text>
+            <text class="ov-label">晚间</text>
+          </view>
+        </view>
+        <view class="progress-bar">
+          <view class="progress-fill" :style="{ width: progressPercent + '%' }"></view>
+        </view>
+        <view class="overview-text">已完成 {{ plan.stepProgress.done }}/{{ plan.stepProgress.total }} 步 · 完成率 {{ progressPercent }}%</view>
       </view>
 
       <!-- 早晚差异提示 -->
@@ -57,6 +81,12 @@
       </view>
 
       <view class="card">
+        <view class="section-title">💡 护肤小贴士</view>
+        <view class="tip-item">· {{ seasonTipText }}</view>
+        <view class="tip-item">· 晚间 22:00–2:00 是皮肤修护黄金期，尽量 23 点前完成护肤</view>
+      </view>
+
+      <view class="card">
         <view class="section-title">⚠️ 禁忌事项</view>
         <view v-for="(t, i) in plan.taboos" :key="i" class="taboo">· {{ t }}</view>
       </view>
@@ -66,6 +96,17 @@
         <view class="section-title">🌞 今日 UV 较高，晒后建议</view>
         <view v-for="(a, i) in uv.afterSunAdvice" :key="i" class="taboo">· {{ a }}</view>
       </view>
+
+      <!-- 快捷操作 -->
+      <view class="card">
+        <view class="section-title">快捷操作</view>
+        <view class="quick-grid">
+          <view class="quick-item" v-for="q in quickActions" :key="q.text" @click="onQuick(q)">
+            <text class="quick-icon">{{ q.icon }}</text>
+            <text class="quick-text">{{ q.text }}</text>
+          </view>
+        </view>
+      </view>
     </template>
 
     <view v-else class="empty card">
@@ -73,6 +114,15 @@
       <text class="text-muted">完成一次 AI 测肤后自动生成个性化方案</text>
       <button class="btn-primary" style="margin-top: 24rpx" @click="goDetect">去测肤</button>
     </view>
+
+    <!-- 晨间提醒设置弹层 -->
+    <ReminderSheet
+      :visible="showReminder"
+      type="morning"
+      title="晨间提醒"
+      @close="showReminder = false"
+      @saved="showReminder = false"
+    />
 
     <!-- 产品选择弹层 -->
     <view v-if="pickerVisible" class="mask" @click="pickerVisible = false">
@@ -95,6 +145,8 @@ import { submitCheckin } from '@/api/checkin';
 import { getPlanSteps, bindPlanStepProduct, listProducts } from '@/api/product';
 import { listIngredients } from '@/api/ingredient';
 import { getUv } from '@/api/env';
+import { goPage } from '@/utils/nav';
+import ReminderSheet from '@/components/ReminderSheet.vue';
 
 const plan = ref<any>(null);
 const bindings = ref<any[]>([]);
@@ -102,6 +154,7 @@ const products = ref<any[]>([]);
 const pickerVisible = ref(false);
 const pickerTarget = ref<any>({ period: 'morning', stepKey: '' });
 const uv = ref<any>(null);
+const showReminder = ref(false);
 
 const isMorning = computed(() => new Date().getHours() < 18);
 
@@ -110,6 +163,46 @@ const progressPercent = computed(() => {
   if (!p || p.total === 0) return 0;
   return Math.round((p.done / p.total) * 100);
 });
+
+const morningStat = computed(() => {
+  const arr = plan.value?.routineMorning || [];
+  return { done: arr.filter((s: any) => s.done).length, total: arr.length };
+});
+
+const eveningStat = computed(() => {
+  const arr = plan.value?.routineEvening || [];
+  return { done: arr.filter((s: any) => s.done).length, total: arr.length };
+});
+
+const seasonTipText = computed(() => {
+  if (uv.value && (uv.value.uvLevel === 'high' || uv.value.uvLevel === 'veryHigh')) {
+    return '今日紫外线较强，记得每 2 小时补涂防晒，晒后加强修护';
+  }
+  const m = new Date().getMonth() + 1;
+  if (m >= 3 && m <= 5) return '春季干燥敏感高发，注意保湿与抗敏，坚持防晒';
+  if (m >= 6 && m <= 8) return '夏季出油出汗多，注意控油清洁与防晒，晒后及时修护';
+  if (m >= 9 && m <= 11) return '秋季干燥，重点保湿与修护屏障，减少过度清洁';
+  return '冬季寒冷干燥，加强保湿与屏障修护，避免过热洗脸';
+});
+
+const quickActions = [
+  { icon: '📷', text: '记录肤况', url: '/pages/diary/index' },
+  { icon: '🛍️', text: '我的产品柜', url: '/pages/product/cabinet' },
+  { icon: '⏰', text: '设置提醒', action: 'reminder' },
+  { icon: '🔁', text: '重新测肤', url: '/pages/detect/upload' },
+];
+
+function onQuick(q: any) {
+  if (q.action === 'reminder') {
+    showReminder.value = true;
+    return;
+  }
+  goPage(q.url);
+}
+
+function goRetest() {
+  goPage('/pages/detect/upload');
+}
 
 function productOf(period: string, stepKey: string) {
   const s = bindings.value.find((x) => x.period === period && x.stepKey === stepKey);
@@ -193,6 +286,74 @@ onMounted(() => {
 .time-hint-text {
   font-size: 26rpx;
   color: #b88230;
+}
+.basis-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16rpx;
+}
+.basis-text {
+  font-size: 22rpx;
+  color: #999;
+}
+.basis-link {
+  font-size: 22rpx;
+  color: #f56c6c;
+}
+.overview-cols {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 16rpx;
+}
+.ov-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+  background: #fef6f8;
+  border-radius: 16rpx;
+}
+.ov-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #f56c6c;
+}
+.ov-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+.overview-text {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+.tip-item {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.7;
+  padding: 4rpx 0;
+}
+.quick-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+.quick-item {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 0;
+}
+.quick-icon {
+  font-size: 48rpx;
+}
+.quick-text {
+  font-size: 22rpx;
+  color: #333;
 }
 .progress-row {
   margin-top: 16rpx;

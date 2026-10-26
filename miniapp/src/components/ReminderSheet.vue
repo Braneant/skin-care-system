@@ -109,7 +109,8 @@ async function save() {
   display: flex;
   gap: 16rpx;
 }
-.btns button {
+.btns .btn-ghost,
+.btns .btn-primary {
   flex: 1;
 }
 .btn-ghost {
