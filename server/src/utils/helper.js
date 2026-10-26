@@ -12,11 +12,7 @@ function now() {
 
 /** 生成今日日期 YYYY-MM-DD（本地时区） */
 function today() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return dateToStr(new Date());
 }
 
 /** 生成随机 ID（文件名等） */
@@ -69,14 +65,12 @@ function pageResult(rows, total, page, pageSize) {
   };
 }
 
-/** 从 ISO 时间取 YYYY-MM-DD（本地时区，用于打卡日期） */
+/** 从 ISO 时间取 YYYY-MM-DD（本地时区，用于打卡日期）；非法输入返回 null */
 function isoToDate(iso) {
   if (!iso) return null;
   const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  if (Number.isNaN(d.getTime())) return null;
+  return dateToStr(d);
 }
 
 /** Date → YYYY-MM-DD（本地时区） */

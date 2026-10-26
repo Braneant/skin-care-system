@@ -91,10 +91,7 @@ function calcStats(userId) {
       fullDaysPerWeek.set(key, (fullDaysPerWeek.get(key) || 0) + 1);
     }
   }
-  let perfectWeekEarned = false;
-  for (const count of fullDaysPerWeek.values()) {
-    if (count >= 7) perfectWeekEarned = true;
-  }
+  const perfectWeekEarned = Array.from(fullDaysPerWeek.values()).some((c) => c >= 7);
   const fullDaysThisWeek = fullDaysPerWeek.get(weekMonday) || 0;
 
   return {

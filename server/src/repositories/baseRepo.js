@@ -87,16 +87,19 @@ class BaseRepo {
     return this.prepare(`DELETE FROM ${this.table} WHERE id = ?`).run(id);
   }
 
+  /** 组装 where 子句（软删除表自动追加 deleted_at IS NULL） */
+  buildWhere(where = '') {
+    if (!this.softDeleteEnabled) return where;
+    return where ? `(${where}) AND deleted_at IS NULL` : 'deleted_at IS NULL';
+  }
+
   /**
    * 列表查询
    * @param {{where?: string, params?: Array, orderBy?: string, page?: number, pageSize?: number}} opts
    */
   list(opts = {}) {
     const { where = '', params = [], orderBy = 'id DESC', page, pageSize } = opts;
-    let whereClause = where;
-    if (this.softDeleteEnabled) {
-      whereClause = where ? `(${where}) AND deleted_at IS NULL` : 'deleted_at IS NULL';
-    }
+    const whereClause = this.buildWhere(where);
     let sql = `SELECT * FROM ${this.table}`;
     if (whereClause) sql += ` WHERE ${whereClause}`;
     if (orderBy) sql += ` ORDER BY ${orderBy}`;
@@ -111,10 +114,7 @@ class BaseRepo {
   /** 计数 */
   count(opts = {}) {
     const { where = '', params = [] } = opts;
-    let whereClause = where;
-    if (this.softDeleteEnabled) {
-      whereClause = where ? `(${where}) AND deleted_at IS NULL` : 'deleted_at IS NULL';
-    }
+    const whereClause = this.buildWhere(where);
     let sql = `SELECT COUNT(*) AS c FROM ${this.table}`;
     if (whereClause) sql += ` WHERE ${whereClause}`;
     return this.prepare(sql).get(...params).c;
