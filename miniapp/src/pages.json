@@ -31,10 +31,10 @@
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
-      { "pagePath": "pages/home/index", "text": "首页" },
-      { "pagePath": "pages/checkin/index", "text": "打卡" },
-      { "pagePath": "pages/plan/index", "text": "方案" },
-      { "pagePath": "pages/mine/index", "text": "我的" }
+      { "pagePath": "pages/home/index", "text": "首页", "iconPath": "static/tabbar/home.png", "selectedIconPath": "static/tabbar/home-active.png" },
+      { "pagePath": "pages/checkin/index", "text": "打卡", "iconPath": "static/tabbar/checkin.png", "selectedIconPath": "static/tabbar/checkin-active.png" },
+      { "pagePath": "pages/plan/index", "text": "方案", "iconPath": "static/tabbar/plan.png", "selectedIconPath": "static/tabbar/plan-active.png" },
+      { "pagePath": "pages/mine/index", "text": "我的", "iconPath": "static/tabbar/mine.png", "selectedIconPath": "static/tabbar/mine-active.png" }
     ]
   },
   "globalStyle": {

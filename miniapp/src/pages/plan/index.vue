@@ -109,10 +109,70 @@
       </view>
     </template>
 
-    <view v-else class="empty card">
-      <text>暂无护肤方案</text>
-      <text class="text-muted">完成一次 AI 测肤后自动生成个性化方案</text>
-      <button class="btn-primary" style="margin-top: 24rpx" @click="goDetect">去测肤</button>
+    <view v-else>
+      <!-- A 数据展示条 -->
+      <view class="card empty-hero">
+        <view class="empty-hero-title">还没有护肤方案</view>
+        <view class="empty-stat">
+          <text v-if="detectCount > 0">已测肤 {{ detectCount }} 次 · 最近得分 {{ latestScore }} 分</text>
+          <text v-else>还没有测肤记录</text>
+        </view>
+      </view>
+
+      <!-- B 三步引导 -->
+      <view class="card">
+        <view class="section-title">如何获得专属方案</view>
+        <view class="steps-row">
+          <view class="guide-step">
+            <view class="guide-num">1</view>
+            <text class="guide-label">填写肤质问卷</text>
+          </view>
+          <view class="guide-arrow">›</view>
+          <view class="guide-step active">
+            <view class="guide-num">2</view>
+            <text class="guide-label">上传照片测肤</text>
+          </view>
+          <view class="guide-arrow">›</view>
+          <view class="guide-step">
+            <view class="guide-num">3</view>
+            <text class="guide-label">生成方案</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- C 双行动按钮 -->
+      <view class="card action-card">
+        <button class="btn-primary action-main" @click="goDetect">开始 AI 测肤</button>
+        <button class="action-sub" @click="goSurvey">先填肤质问卷</button>
+      </view>
+
+      <!-- D 示例方案预览 -->
+      <view class="card">
+        <view class="preview-head">
+          <text class="section-title">示例方案预览</text>
+          <text class="preview-tag">测肤后为你定制</text>
+        </view>
+        <view class="preview-sub">☀️ 晨间</view>
+        <view v-for="(s, i) in sampleMorning" :key="'sm' + i" class="preview-step">
+          <text class="preview-idx">{{ i + 1 }}</text>
+          <text class="preview-name">{{ s.step }}</text>
+          <text class="preview-desc">{{ s.desc }}</text>
+        </view>
+        <view class="preview-sub">🌙 晚间</view>
+        <view v-for="(s, i) in sampleEvening" :key="'se' + i" class="preview-step">
+          <text class="preview-idx">{{ i + 1 }}</text>
+          <text class="preview-name">{{ s.step }}</text>
+          <text class="preview-desc">{{ s.desc }}</text>
+        </view>
+      </view>
+
+      <!-- E 测肤须知 -->
+      <view class="card">
+        <view class="section-title">💡 测肤须知</view>
+        <view class="notice-line">· 正脸清晰照，露出额头与脸颊</view>
+        <view class="notice-line">· 自然光下拍摄，避免浓妆与滤镜</view>
+        <view class="notice-line">· 素颜状态测量更准确</view>
+      </view>
     </view>
 
     <!-- 晨间提醒设置弹层 -->
@@ -145,7 +205,9 @@ import { submitCheckin } from '@/api/checkin';
 import { getPlanSteps, bindPlanStepProduct, listProducts } from '@/api/product';
 import { listIngredients } from '@/api/ingredient';
 import { getUv } from '@/api/env';
+import { listDetect } from '@/api/detect';
 import { goPage } from '@/utils/nav';
+import { resolveCity } from '@/utils/location';
 import ReminderSheet from '@/components/ReminderSheet.vue';
 
 const plan = ref<any>(null);
@@ -155,6 +217,19 @@ const pickerVisible = ref(false);
 const pickerTarget = ref<any>({ period: 'morning', stepKey: '' });
 const uv = ref<any>(null);
 const showReminder = ref(false);
+const detectCount = ref(0);
+const latestScore = ref<number | null>(null);
+
+const sampleMorning = [
+  { step: '清洁', desc: '温和氨基酸洁面' },
+  { step: '精华', desc: '保湿 / 功效精华' },
+  { step: '防晒', desc: 'SPF30+ 防晒霜' },
+];
+const sampleEvening = [
+  { step: '清洁', desc: '卸妆 + 洁面' },
+  { step: '保湿', desc: '修护面霜锁水' },
+  { step: '修护', desc: '屏障修护精华' },
+];
 
 const isMorning = computed(() => new Date().getHours() < 18);
 
@@ -213,6 +288,20 @@ function goDetect() {
   uni.navigateTo({ url: '/pages/detect/upload' });
 }
 
+function goSurvey() {
+  goPage('/pages/survey/index');
+}
+
+async function loadDetectStats() {
+  try {
+    const list = await listDetect();
+    detectCount.value = (list || []).length;
+    latestScore.value = list && list[0] ? list[0].score : null;
+  } catch (e) {
+    /* ignore */
+  }
+}
+
 async function load() {
   try {
     const [p, steps] = await Promise.all([getPlan(), getPlanSteps()]);
@@ -269,9 +358,15 @@ async function pickProduct(productId: number) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   load();
-  getUv('北京').then((u) => { uv.value = u; }).catch(() => {});
+  loadDetectStats();
+  try {
+    const resolved = await resolveCity();
+    uv.value = await getUv(resolved.city);
+  } catch (e) {
+    /* ignore */
+  }
 });
 </script>
 
@@ -354,6 +449,124 @@ onMounted(() => {
 .quick-text {
   font-size: 22rpx;
   color: #333;
+}
+.empty-hero {
+  background: linear-gradient(135deg, #fce8ee, #e8f4fd);
+  text-align: center;
+}
+.empty-hero-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  margin-bottom: 10rpx;
+}
+.empty-stat {
+  font-size: 26rpx;
+  color: #666;
+}
+.steps-row {
+  display: flex;
+  align-items: center;
+}
+.guide-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+}
+.guide-num {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #f0f0f0;
+  color: #999;
+  text-align: center;
+  line-height: 56rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+.guide-step.active .guide-num {
+  background: #f56c6c;
+  color: #fff;
+}
+.guide-label {
+  font-size: 22rpx;
+  color: #666;
+}
+.guide-step.active .guide-label {
+  color: #f56c6c;
+  font-weight: 600;
+}
+.guide-arrow {
+  color: #ddd;
+  font-size: 32rpx;
+  padding: 0 8rpx;
+}
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.action-main {
+  width: 100%;
+}
+.action-sub {
+  width: 100%;
+  background: #fff;
+  color: #f56c6c;
+  border: 2rpx solid #fce8ee;
+  border-radius: 44rpx;
+  font-size: 28rpx;
+  line-height: 2.4;
+}
+.preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.preview-tag {
+  font-size: 20rpx;
+  color: #f56c6c;
+  background: #fef0f0;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+}
+.preview-sub {
+  font-size: 24rpx;
+  color: #999;
+  margin: 12rpx 0 8rpx;
+}
+.preview-step {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 8rpx 0;
+}
+.preview-idx {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  background: #fce8ee;
+  color: #f56c6c;
+  text-align: center;
+  line-height: 32rpx;
+  font-size: 20rpx;
+  flex-shrink: 0;
+}
+.preview-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  width: 100rpx;
+}
+.preview-desc {
+  font-size: 24rpx;
+  color: #888;
+}
+.notice-line {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.8;
 }
 .progress-row {
   margin-top: 16rpx;

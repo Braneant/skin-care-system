@@ -13,7 +13,13 @@
       "postcss": true,
       "minified": true
     },
-    "usingComponents": true
+    "usingComponents": true,
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于根据你的位置显示当地紫外线指数与防晒建议"
+      }
+    },
+    "requiredPrivateInfos": ["getLocation"]
   },
   "h5": {
     "title": "智能护肤",

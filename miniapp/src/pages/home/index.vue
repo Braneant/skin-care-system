@@ -70,7 +70,12 @@
 
     <!-- UV/天气提醒卡 -->
     <view v-if="userStore.isLogin && uv" class="card">
-      <view class="section-title">☀️ UV 指数提醒（{{ uv.city }}）</view>
+      <picker mode="selector" :range="CITY_LIST" :value="cityIndex" @change="onUvCityChange">
+        <view class="uv-title-row">
+          <text class="section-title">☀️ UV 指数提醒（{{ uv.city }}）</text>
+          <text class="uv-title-arrow">▾</text>
+        </view>
+      </picker>
       <view class="uv-row">
         <text class="uv-num">{{ uv.uvIndex }}</text>
         <text class="uv-level">{{ uv.uvLevelLabel }}</text>
@@ -80,6 +85,7 @@
         <text class="after-sun-title">晒后建议：</text>
         <text v-for="(a, i) in uv.afterSunAdvice" :key="i" class="after-sun-item">{{ a }}</text>
       </view>
+      <view v-if="uvSource !== 'gps'" class="uv-loc-tip">定位未开启，显示{{ uv.city }}，点击上方可切换城市</view>
     </view>
 
     <!-- 季节护理 + 复测提醒 -->
@@ -108,6 +114,7 @@ import { getSummary, type HomeSummary } from '@/api/home';
 import { listProducts } from '@/api/product';
 import { getUv, getSeasonTip, getRecheck } from '@/api/env';
 import { goPage } from '@/utils/nav';
+import { resolveCity, onCityChange, CITY_LIST } from '@/utils/location';
 import ProgressRing from '@/components/ProgressRing.vue';
 
 const userStore = useUserStore();
@@ -117,6 +124,8 @@ const recommend = ref<any[]>([]);
 const uv = ref<any>(null);
 const seasonTip = ref<any>(null);
 const recheck = ref<any>(null);
+const uvSource = ref<'gps' | 'cache' | 'default'>('default');
+const cityIndex = ref(CITY_LIST.indexOf('北京'));
 
 const entries = [
   { icon: '📷', text: 'AI 测肤', url: '/pages/detect/upload' },
@@ -147,7 +156,10 @@ async function load() {
       /* ignore */
     }
     try {
-      uv.value = await getUv('北京');
+      const resolved = await resolveCity();
+      uvSource.value = resolved.source;
+      cityIndex.value = Math.max(0, CITY_LIST.indexOf(resolved.city));
+      uv.value = await getUv(resolved.city);
     } catch (e) {
       /* ignore */
     }
@@ -165,6 +177,18 @@ async function load() {
   try {
     notices.value = await listNotices();
   } catch (e) {
+    /* ignore */
+  }
+}
+
+async function onUvCityChange(e: any) {
+  const city = onCityChange(e);
+  cityIndex.value = Math.max(0, CITY_LIST.indexOf(city));
+  try {
+    uv.value = await getUv(city);
+    uvSource.value = 'cache';
+    uni.showToast({ title: `已切换到${city}`, icon: 'none' });
+  } catch (err) {
     /* ignore */
   }
 }
@@ -329,6 +353,20 @@ onMounted(load);
   display: block;
   font-size: 26rpx;
   color: #555;
+}
+.uv-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.uv-title-arrow {
+  color: #f56c6c;
+  font-size: 26rpx;
+}
+.uv-loc-tip {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #bbb;
 }
 .after-sun {
   margin-top: 12rpx;
