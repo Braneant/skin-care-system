@@ -5,7 +5,7 @@ import { getToken, clearToken } from '@/utils/auth';
 const BASE_URL = '/api';
 // #endif
 // #ifndef H5
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'http://192.168.1.3:3000/api';
 // #endif
 
 export interface RequestOptions {
