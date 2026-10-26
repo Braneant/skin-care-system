@@ -15,15 +15,25 @@ class FollowupMessageRepo extends BaseRepo {
     ).all(userId);
   }
 
-  /** 医生侧：全部消息（联昵称，降序分页） */
+  /** 医生侧：全部消息（联昵称，降序分页；排除机器人消息） */
   listAllPaginated(page = 1, pageSize = 20) {
     const rows = this.prepare(
       `SELECT fm.*, u.nickname FROM followup_message fm
        LEFT JOIN wx_users u ON u.id = fm.user_id
+       WHERE fm.sender != 'bot'
        ORDER BY fm.created_at DESC, fm.id DESC LIMIT ? OFFSET ?`
     ).all(pageSize, (page - 1) * pageSize);
-    const total = this.prepare('SELECT COUNT(*) AS c FROM followup_message').get().c;
+    const total = this.prepare(
+      "SELECT COUNT(*) AS c FROM followup_message WHERE sender != 'bot'"
+    ).get().c;
     return { list: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) || 0 };
+  }
+
+  /** 用户已收到的机器人回复条数（用于循环取话术） */
+  countBotReplies(userId) {
+    return this.prepare(
+      "SELECT COUNT(*) AS c FROM followup_message WHERE user_id = ? AND sender = 'bot'"
+    ).get(userId).c;
   }
 
   insert(userId, doctorId, sender, content) {

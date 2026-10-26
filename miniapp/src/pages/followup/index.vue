@@ -3,6 +3,7 @@
     <view class="msg-list">
       <view v-for="m in list" :key="m.id" class="msg-row" :class="m.sender">
         <view class="bubble">
+          <text v-if="m.sender === 'bot'" class="bot-label">🤖 智能助手</text>
           <text class="bubble-text">{{ m.content }}</text>
           <text class="bubble-time">{{ (m.createdAt || '').slice(11, 16) }}</text>
         </view>
@@ -69,6 +70,9 @@ onMounted(load);
 .msg-row.doctor {
   justify-content: flex-start;
 }
+.msg-row.bot {
+  justify-content: flex-start;
+}
 .bubble {
   max-width: 70%;
   padding: 16rpx 20rpx;
@@ -85,6 +89,14 @@ onMounted(load);
   background: #fff;
   color: #333;
 }
+.msg-row.bot .bubble {
+  background: #eef4ff;
+  color: #333;
+}
+.bot-label {
+  font-size: 20rpx;
+  color: #7a8bb5;
+}
 .bubble-text {
   font-size: 28rpx;
   line-height: 1.5;
@@ -94,6 +106,9 @@ onMounted(load);
 }
 .msg-row.doctor .bubble-time {
   color: #bbb;
+}
+.msg-row.bot .bubble-time {
+  color: #aab;
 }
 .bubble-time {
   font-size: 20rpx;

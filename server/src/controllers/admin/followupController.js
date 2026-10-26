@@ -9,17 +9,20 @@ function list(req, res, next) {
   try {
     const userId = req.query.userId ? Number(req.query.userId) : null;
 
-    // 查看单个用户会话：标记该用户消息已读
+    // 查看单个用户会话：标记该用户消息已读（排除机器人消息）
     if (userId) {
       followupMessageRepo.markUserMessagesRead(userId);
-      const msgs = followupMessageRepo.listByUser(userId).map((m) => ({
-        id: m.id,
-        userId: m.user_id,
-        sender: m.sender,
-        content: m.content,
-        isRead: !!m.is_read,
-        createdAt: m.created_at,
-      }));
+      const msgs = followupMessageRepo
+        .listByUser(userId)
+        .filter((m) => m.sender !== 'bot')
+        .map((m) => ({
+          id: m.id,
+          userId: m.user_id,
+          sender: m.sender,
+          content: m.content,
+          isRead: !!m.is_read,
+          createdAt: m.created_at,
+        }));
       return res.ok({
         list: msgs,
         total: msgs.length,
