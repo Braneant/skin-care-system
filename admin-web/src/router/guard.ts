@@ -25,7 +25,8 @@ router.beforeEach(async (to, _from, next) => {
     try {
       const data = await userStore.fetchInfo();
       permissionStore.generateRoutes(data.menus);
-      next({ ...to, replace: true });
+      // 用显式 path 重新导航：避免展开 to 时带上兜底路由的 name/matched 造成再次命中兜底
+      next({ path: to.path, query: to.query, hash: to.hash, replace: true });
       return;
     } catch (e) {
       userStore.logout();
