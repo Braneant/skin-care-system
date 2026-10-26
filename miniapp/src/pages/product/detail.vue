@@ -29,7 +29,7 @@
         >
           <text class="ing-name">{{ ing.name }}</text>
           <text class="ing-eff">{{ ing.efficacy || '' }}</text>
-          <text class="ing-risk" :class="'r-' + ing.riskLevel">{{ ing.riskLevel || '' }}</text>
+          <text class="ing-risk" :class="{ 'r-low': ing.riskLevel === '低', 'r-mid': ing.riskLevel === '中', 'r-high': ing.riskLevel === '高' }">{{ ing.riskLevel || '' }}</text>
         </view>
       </view>
 
@@ -152,9 +152,9 @@ onMounted(async () => {
 .ing-risk {
   font-size: 20rpx;
 }
-.r-低 { color: #3bb877; }
-.r-中 { color: #e6a23c; }
-.r-高 { color: #f56c6c; }
+.r-low { color: #3bb877; }
+.r-mid { color: #e6a23c; }
+.r-high { color: #f56c6c; }
 .add-btn {
   margin-top: 32rpx;
 }

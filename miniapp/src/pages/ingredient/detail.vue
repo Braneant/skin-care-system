@@ -7,7 +7,7 @@
       </view>
 
       <view class="tags">
-        <text class="risk" :class="'r-' + ing.riskLevel">{{ ing.riskLevel }}风险</text>
+        <text class="risk" :class="{ 'r-low': ing.riskLevel === '低', 'r-mid': ing.riskLevel === '中', 'r-high': ing.riskLevel === '高' }">{{ ing.riskLevel }}风险</text>
         <text v-for="f in ing.functions" :key="f" class="func-tag">{{ f }}</text>
       </view>
 
@@ -87,9 +87,9 @@ onMounted(async () => {
   padding: 4rpx 16rpx;
   border-radius: 20rpx;
 }
-.r-低 { background: #e8f8ef; color: #3bb877; }
-.r-中 { background: #fff7e6; color: #e6a23c; }
-.r-高 { background: #fdeaea; color: #f56c6c; }
+.r-low { background: #e8f8ef; color: #3bb877; }
+.r-mid { background: #fff7e6; color: #e6a23c; }
+.r-high { background: #fdeaea; color: #f56c6c; }
 .func-tag {
   font-size: 22rpx;
   color: #4a7fe0;
