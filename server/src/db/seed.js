@@ -213,24 +213,178 @@ function seedSkinDict(db) {
   }
 }
 
+/** 科普文章（13 篇：原有 1 篇 + 新增 12 篇，按标题幂等） */
+const SEED_ARTICLES = [
+  {
+    title: '科学护肤：如何正确认识自己的肤质',
+    cover: '/static/covers/art1.png',
+    author: '平台小编',
+    viewCount: 168,
+    offsetDays: 0,
+    content:
+      '<p>肤质通常分为干性、油性、混合性、中性、敏感性五类，认清肤质是科学护肤的第一步。建议通过问卷与专业检测了解自己的肤质。</p>' +
+      '<h3>如何判断</h3><p>洁面后 1 小时观察：全脸紧绷多为干性；T 区泛油、两颊干为混合性；整体出油为油性；易泛红刺痛为敏感性。</p>' +
+      '<h3>基础三步</h3><p>清洁、保湿、防晒是日常护肤的基础，坚持做好三步即可改善大多数肌肤问题。</p>',
+  },
+  {
+    title: '清洁：过度清洁反而伤皮肤',
+    cover: '/static/covers/art13.png',
+    author: '平台小编',
+    viewCount: 132,
+    offsetDays: 3,
+    content:
+      '<p>很多人以为洗脸越勤越干净，其实过度清洁会破坏皮肤屏障，导致干燥、敏感甚至爆痘。皮肤表面的弱酸性皮脂膜是天然保护层。</p>' +
+      '<h3>正确做法</h3><p>早晚各洁面一次即可，油皮可中午用清水轻洗；选择温和氨基酸洁面；水温接近体温，避免过热；洗完 3 分钟内及时保湿。</p>' +
+      '<h3>常见误区</h3><p>泡沫越多越干净、洗后紧绷才算干净，都是错误认知。若出现泛红刺痛脱皮，应减少清洁并加强修护。</p>',
+  },
+  {
+    title: '保湿：补水不等于保湿',
+    cover: '/static/covers/art2.png',
+    author: '皮肤科顾问',
+    viewCount: 145,
+    offsetDays: 6,
+    content:
+      '<p>补水是把水分送进皮肤，保湿是把水分锁住，两者缺一不可。只补水不锁水，水分很快蒸发，皮肤反而更干。</p>' +
+      '<h3>怎么做</h3><p>先用含透明质酸、甘油的产品补水，再叠加含神经酰胺、角鲨烷的面霜锁水；干性肌可加一层护肤油；油性肌选清爽乳液避免闷痘。</p>' +
+      '<h3>提醒</h3><p>保湿不是越厚越好，过度封闭会堵塞毛孔，应根据季节与肤质调整质地。</p>',
+  },
+  {
+    title: '防晒：全年都要做的功课',
+    cover: '/static/covers/art3.png',
+    author: '皮肤科顾问',
+    viewCount: 190,
+    offsetDays: 9,
+    content:
+      '<p>紫外线是导致光老化、色斑和暗沉的头号元凶，无论晴天阴天、室内室外都需要防晒。UVA 能穿透玻璃，长期累积会让皮肤提前衰老。</p>' +
+      '<h3>怎么选</h3><p>日常通勤选 SPF30+ PA+++；户外暴晒选 SPF50+ PA++++；每 2 小时补涂一次，出汗或游泳后及时补涂；用量约一元硬币大小。</p>' +
+      '<h3>提醒</h3><p>防晒是抗老最划算的投入，坚持比贵价更重要。敏感肌可选温和物理防晒。</p>',
+  },
+  {
+    title: '烟酰胺：控油提亮的全能选手',
+    cover: '/static/covers/art4.png',
+    author: '平台小编',
+    viewCount: 156,
+    offsetDays: 12,
+    content:
+      '<p>烟酰胺是维生素B3衍生物，能控油、提亮、修护屏障，是性价比极高的多面手成分，适合油性与混合性肌肤改善毛孔与暗沉。</p>' +
+      '<h3>怎么用</h3><p>新手从低浓度（2%-5%）开始，建立耐受后再提升；避免与高浓度酸类、维C叠加；白天使用需配合防晒。</p>' +
+      '<h3>提醒</h3><p>少数人初期会有轻微泛红刺痛，属正常耐受反应，减量使用即可，敏感肌建议先做耳后测试。</p>',
+  },
+  {
+    title: '视黄醇(A醇)：抗老黄金成分怎么用',
+    cover: '/static/covers/art5.png',
+    author: '皮肤科顾问',
+    viewCount: 178,
+    offsetDays: 15,
+    content:
+      '<p>视黄醇是公认的抗老黄金成分，能促进胶原生成、淡化细纹、改善粗糙，但刺激性较强，需要科学使用才能发挥效果。</p>' +
+      '<h3>怎么用</h3><p>从低浓度、低频率开始，每周 2 次夜间使用逐步增加；采用「保湿-视黄醇-保湿」三明治用法降低刺激；白天必须严格防晒。</p>' +
+      '<h3>提醒</h3><p>孕妇、哺乳期禁用；避免与酸类、高浓度维C同用；出现脱皮泛红应停用并加强修护。</p>',
+  },
+  {
+    title: '水杨酸：油痘肌的祛痘利器',
+    cover: '/static/covers/art6.png',
+    author: '平台小编',
+    viewCount: 143,
+    offsetDays: 18,
+    content:
+      '<p>水杨酸是脂溶性酸，能深入毛孔溶解油脂、疏通堵塞，是油痘肌对付黑头和痘痘的利器，同时还能抗炎减少红肿。</p>' +
+      '<h3>怎么用</h3><p>从低浓度（0.5%-2%）开始，每周 2-3 次局部使用；避免全脸大面积高频使用；使用期间加强保湿与防晒。</p>' +
+      '<h3>提醒</h3><p>孕妇慎用；干性、敏感肌不建议使用；不要与视黄醇、其他酸类叠加，以免过度刺激。</p>',
+  },
+  {
+    title: '透明质酸：补水保湿的明星成分',
+    cover: '/static/covers/art7.png',
+    author: '平台小编',
+    viewCount: 121,
+    offsetDays: 21,
+    content:
+      '<p>透明质酸（玻尿酸）能吸收自身千倍的水分，是补水保湿的明星成分，几乎适合所有肤质，让皮肤看起来水润饱满。</p>' +
+      '<h3>怎么用</h3><p>洁面后先用含透明质酸的精华或水，再叠加面霜锁水；干燥环境可配合加湿器，避免只补水不锁水导致越补越干。</p>' +
+      '<h3>提醒</h3><p>透明质酸本身温和，但分子量大时停留在表面，需配合封闭性成分锁水，效果才持久。</p>',
+  },
+  {
+    title: '敏感肌护理：修护屏障是关键',
+    cover: '/static/covers/art8.png',
+    author: '皮肤科顾问',
+    viewCount: 165,
+    offsetDays: 24,
+    content:
+      '<p>敏感肌的核心问题是皮肤屏障受损，表现为泛红、刺痛、干痒。护理的关键不是叠加功效，而是温和清洁与修护屏障。</p>' +
+      '<h3>怎么做</h3><p>选择无香精、无酒精的温和产品；用含神经酰胺、积雪草、泛醇的成分修护；减少去角质和功效叠加；做好防晒与保湿。</p>' +
+      '<h3>提醒</h3><p>敏感发作期应精简护肤，只保留清洁、保湿、防晒三步，持续不缓解建议就医。</p>',
+  },
+  {
+    title: '痘痘肌的日常护理与误区',
+    cover: '/static/covers/art9.png',
+    author: '平台小编',
+    viewCount: 152,
+    offsetDays: 27,
+    content:
+      '<p>痘痘肌护理的关键是控油、疏通毛孔与抗炎，而不是一味地猛洗脸或挤痘痘，错误护理会让痘痘更严重、留下痘印。</p>' +
+      '<h3>怎么做</h3><p>温和清洁、避免过度去角质；局部使用水杨酸或壬二酸疏通毛孔；严重时及时就医；注意作息与饮食，减少高糖高油。</p>' +
+      '<h3>误区</h3><p>挤痘痘、频繁敷面膜、迷信「排毒」都可能加重炎症，痘印痘坑需长期修护，切忌心急。</p>',
+  },
+  {
+    title: '抗老从什么时候开始：抗氧化才是第一步',
+    cover: '/static/covers/art10.png',
+    author: '皮肤科顾问',
+    viewCount: 174,
+    offsetDays: 30,
+    content:
+      '<p>抗老不是等到有皱纹才开始，25 岁后胶原蛋白开始流失，抗氧化应尽早提上日程。紫外线、熬夜、压力都会产生自由基加速衰老。</p>' +
+      '<h3>怎么做</h3><p>白天用含维C、维E的抗氧化产品搭配防晒；夜间可用视黄醇、胜肽抗老；保证睡眠、减少熬夜与高糖饮食。</p>' +
+      '<h3>提醒</h3><p>抗老是长期工程，防晒 + 抗氧化 + 良好作息，比单一贵价产品更有效。</p>',
+  },
+  {
+    title: '换季护肤：不同季节的护理重点',
+    cover: '/static/covers/art11.png',
+    author: '平台小编',
+    viewCount: 138,
+    offsetDays: 33,
+    content:
+      '<p>季节交替时气温湿度变化大，皮肤容易出现干燥、敏感、出油等问题，护肤重点也要随季节调整。</p>' +
+      '<h3>分季重点</h3><p>春季保湿抗敏、坚持防晒；夏季控油清洁、防晒晒后修护；秋季保湿修护屏障；冬季强保湿、防干燥。</p>' +
+      '<h3>提醒</h3><p>换季时精简护肤、逐步更换产品，避免一次性大换血导致皮肤不适应。</p>',
+  },
+  {
+    title: '面膜怎么敷才有用',
+    cover: '/static/covers/art12.png',
+    author: '平台小编',
+    viewCount: 118,
+    offsetDays: 36,
+    content:
+      '<p>面膜不是敷得越勤越好，过度敷面膜会导致皮肤过度水合、屏障受损，科学敷面膜才能发挥补水修护的作用。</p>' +
+      '<h3>怎么敷</h3><p>补水面膜每周 2-3 次，每次 10-15 分钟；敷完及时涂抹面霜锁水；清洁面膜每周 1 次即可；敏感肌减少频率。</p>' +
+      '<h3>提醒</h3><p>敷面膜时间过长会反吸水分，敷完不锁水等于白敷，痘痘爆发期避免敷营养型面膜。</p>',
+  },
+];
+
+/** 按标题幂等播种文章；已存在则仅在封面为空时补封面 */
+function seedArticles(db, t) {
+  const getByTitle = db.prepare('SELECT id, cover_url FROM articles WHERE title = ?');
+  const ins = db.prepare(
+    `INSERT INTO articles (title, cover_url, content, author, status, view_count, publish_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)`
+  );
+  const updCover = db.prepare('UPDATE articles SET cover_url = ?, updated_at = ? WHERE id = ?');
+  const baseTs = Date.parse('2026-10-21T08:00:00.000Z');
+
+  for (const a of SEED_ARTICLES) {
+    const exist = getByTitle.get(a.title);
+    if (!exist) {
+      const publishAt = new Date(baseTs - (a.offsetDays || 0) * 86400000).toISOString();
+      ins.run(a.title, a.cover, a.content, a.author, a.viewCount || 0, publishAt, t, t);
+    } else if (!exist.cover_url) {
+      updCover.run(a.cover, t, exist.id);
+    }
+  }
+}
+
 function seedContent(db) {
   const t = now();
-  // 示例文章
-  const articleCount = db.prepare('SELECT COUNT(*) AS c FROM articles').get().c;
-  if (articleCount === 0) {
-    db.prepare(
-      `INSERT INTO articles (title, cover_url, content, author, status, view_count, publish_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 1, 0, ?, ?, ?)`
-    ).run(
-      '科学护肤：如何正确认识自己的肤质',
-      null,
-      '<h3>认识肤质</h3><p>肤质通常分为干性、油性、混合性、中性、敏感性五类。建议通过问卷与专业检测了解自己的肤质。</p><h3>基础三步</h3><p>清洁、保湿、防晒是日常护肤的基础，坚持做好三步即可改善大多数肌肤问题。</p>',
-      '平台小编',
-      t,
-      t,
-      t
-    );
-  }
+  // 示例文章（按标题幂等，共 13 篇）
+  seedArticles(db, t);
 
   // 示例产品（Phase B：多产品 + ingredients 关联成分名，按名称幂等插入）
   const insProduct = db.prepare(

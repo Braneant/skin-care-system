@@ -6,6 +6,22 @@ const noticeRepo = require('../../repositories/noticeRepo');
 const feedbackRepo = require('../../repositories/feedbackRepo');
 const adviceRepo = require('../../repositories/adviceRepo');
 
+/** 从 HTML 正文派生纯文本摘要（去标题与标签、合并空白、超长截断加省略号） */
+function deriveSummary(html, maxLen = 80) {
+  if (!html) return '';
+  const text = String(html)
+    .replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, maxLen)}…`;
+}
+
 /** 文章列表（公开） */
 function listArticles(req, res, next) {
   try {
@@ -17,6 +33,7 @@ function listArticles(req, res, next) {
         id: a.id,
         title: a.title,
         coverUrl: a.cover_url,
+        summary: deriveSummary(a.content),
         author: a.author,
         viewCount: a.view_count,
         publishAt: a.publish_at,
@@ -42,6 +59,7 @@ function getArticle(req, res, next) {
       id: article.id,
       title: article.title,
       coverUrl: article.cover_url,
+      summary: deriveSummary(article.content),
       content: article.content,
       author: article.author,
       viewCount: article.view_count + 1,

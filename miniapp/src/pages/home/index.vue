@@ -30,7 +30,7 @@
     <view v-if="userStore.isLogin && summary" class="todo-card card">
       <view class="todo-head">
         <text class="section-title">今日待办</text>
-        <ProgressRing :rate="summary.weekRate" :size="110" label="本周完成率" />
+        <ProgressRing :rate="summary.weekRate" :size="132" label="本周完成率" />
       </view>
       <view v-if="summary.todayTodo.length" class="todo-list">
         <view
