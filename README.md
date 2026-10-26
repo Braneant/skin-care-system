@@ -1,7 +1,7 @@
 # 基于 AI 大模型 + 微信小程序的肌肤养护管理系统
 
-> 项目代号：`skin_care_system` · 版本 v1.0（MVP）
-> 三端协同：普通用户智能护肤（小程序端）+ 医护顾问专业赋能（医生工作台）+ 管理员高效运维（管理端）
+> 项目代号 `skin_care_system`，版本 v1.0（MVP）。
+> 三个使用端各管一摊：用户在微信小程序里测肤、看方案、打卡；医生在后台翻档案、写建议；管理员维护内容和权限。
 
 ## 一、项目结构
 
@@ -84,11 +84,11 @@ npm run dev:mp-weixin   # 编译微信小程序（产物在 dist/dev/mp-weixin�
 
 ## 六、核心特性
 
-- **双鉴权隔离**：`/api/wx/*`（Header `Wx-Authorization`）、`/api/admin/*`（Header `Authorization`），物理隔离互不通用。
-- **RBAC 动态菜单**：后端返回权限树，管理端递归渲染菜单 + 动态路由 + 接口级鉴权。
-- **AI 可插拔 + 降级链**：DeepSeek → 重试 1 次 → 本地色彩学启发式引擎，返回 `engine` / `degraded` 标记。
-- **图片处理降级**：优先 `sharp`，不可用自动降级纯 JS `jimp`（`server/src/services/ai/imageUtils.js` 内部隔离）。
-- **统一响应**：`{ code, msg, data }`，`code=0` 成功。
+- 双鉴权隔离：`/api/wx/*` 走 `Wx-Authorization`，`/api/admin/*` 走 `Authorization`，两套 token 互不通用。
+- RBAC 动态菜单：后端下发权限树，管理端递归渲染菜单，路由和接口都按权限拦。
+- AI 可插拔：默认走 DeepSeek，失败重试一次后降级到本地启发式引擎，响应里用 `engine`、`degraded` 标记实际来源。
+- 图片处理：优先 `sharp`，装不上就自动改用纯 JS 的 `jimp`（`server/src/services/ai/imageUtils.js` 里做了隔离）。
+- 统一响应：固定 `{ code, msg, data }`，`code=0` 表示成功。
 
 ## 七、已知说明
 

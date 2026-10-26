@@ -27,10 +27,10 @@ graph TD
     B -.数据层可并行.- C
 ```
 
-- **A 完全独立**：streak / 周历 / 待办 / 徽章全部基于既有 `checkin_records` 与 `plans` 计算，只新增 1 张表，最快 1 周上线。
-- **B 依赖现有 `products` / `plans` / `skin_profiles`**：与 A 无强耦合，数据层可与 A 并行建设；但方案 tab 前端有重叠，建议 A 合入后再做 B 的方案页改动。
-- **C 依赖 A 的打卡/待办与 B 的方案/产品**：UV/季节/复测是「读数据 + 规则」，照片日记与随访独立建表，数据层可与 A/B 并行；前端首页与 A 的待办卡、B 的成分入口同页，建议按 **A → B → C** 顺序合并，避免首页 tab 反复冲突。
-- **推荐落地顺序**：A（先做，验证留存）→ B（核心，建立专业信任）→ C（增强，形成陪伴）。B/C 的后端数据层可并行，前端按序交付。
+- A 完全独立。streak、周历、待办、徽章都由既有的 `checkin_records` 和 `plans` 算出来，只新增 1 张表，最快 1 周能上线。
+- B 要用现有的 `products` / `plans` / `skin_profiles`，和 A 没有强耦合，数据层可以同时开工。麻烦在方案 tab：两边前端有重叠，建议 A 合入之后再动 B 的方案页。
+- C 要用 A 的打卡/待办和 B 的方案/产品。UV、季节、复测这三块本质是「读数据 + 跑规则」，照片日记和随访各建各的表，数据层同样能和 A/B 并行。首页也是同一个问题，A 的待办卡和 B 的成分入口挤在一页上，所以合并顺序还是按 A → B → C，免得首页 tab 反复冲突。
+- 落地顺序：A 先做，用来验证留存；B 是核心，专业不专业主要看它；C 收尾，补上长期陪伴的感觉。B/C 的后端数据层可以并行，前端按这个顺序交付。
 
 ---
 
@@ -52,7 +52,7 @@ graph TD
 | created_at | TEXT | — |
 
 - 索引：`UNIQUE(user_id, badge_code)`（幂等发放）、`idx_user_badge_user(user_id)`。
-- 关联：`user_badge` N:1 `wx_users`。徽章规则本身为**常量**（不建表）。
+- 关联：`user_badge` N:1 `wx_users`。徽章规则本身是常量，不建表。
 
 #### Phase B（5 张）
 
@@ -582,7 +582,7 @@ classDiagram
 
 ## 5. 分阶段任务列表
 
-> 每个任务 ≥3 个相关文件；任务内按「数据层 → 接口层 → 页面层」顺序实现。每段结束有「可独立验证边界」。
+> 每个任务至少涉及 3 个相关文件，内部按「数据层 → 接口层 → 页面层」的顺序来写。每段末尾有一条「可独立验证边界」，用来说明这段做到哪儿就算完。
 
 ### Phase A：轻量习惯养成
 
@@ -603,7 +603,7 @@ classDiagram
 - **依赖**：T-A1
 - **验收标准**：
   - [ ] 首页顶部展示「已连续 N 天」火焰标识，断签后显示回归文案。
-  - [ ] 「今日待办」卡片聚合今日打卡 + 方案步骤未完成项，点击可一键跳转。
+  - [ ] 「今日待办」卡片聚合今日打卡 + 方案步骤未完成项，点一下就跳到对应的 tab。
   - [ ] 「本周完成率环」正确渲染。
   - [ ] 打卡页 7 日周历圆点（勾=完成/点=漏签）正确。
   - [ ] 情境激励文案随 streak 状态变化（起步/坚持/火热/回归）。
@@ -617,7 +617,7 @@ classDiagram
   - [ ] 徽章墙展示已获（亮）/未解锁（灰）+ 解锁条件 + 进度。
   - [ ] 从我的页进入徽章墙并可返回。
 
-> **Phase A 可独立验证边界**：打卡 → streak → 徽章 → 周历 → 待办 → 方案联动 闭环可独立验证，不依赖 B/C。
+> **Phase A 可独立验证边界**：打卡 → streak → 徽章 → 周历 → 待办 → 方案联动，这条链路能单独走通，不依赖 B/C。
 
 ### Phase B：专业美妆顾问
 
@@ -628,7 +628,7 @@ classDiagram
   - [ ] 5 张新表自动建表，外键/唯一索引正确。
   - [ ] `ingredientRepo` 支持 keyword 检索（`name`/`aliases`/`functions`）。
   - [ ] `matchService.calcMatchScore` 按肤质 + 成分规则输出 0–100 匹配度。
-  - [ ] seed 播种 ≥20 条示例成分 + 示例产品 `ingredients` 关联成分名。
+  - [ ] seed 里放 ≥20 条示例成分，示例产品的 `ingredients` 能对上成分名。
 
 #### T-B2 — 后端接口：wx + admin
 - **涉及文件**：`server/src/controllers/wx/ingredientController.js`、`productController.js`、`myProductController.js`、`productUsageController.js`、`usageLogController.js`（新）、`server/src/controllers/wx/planController.js`（扩展 steps 绑定）、`server/src/controllers/admin/ingredientController.js`（新）、`server/src/routes/wxRoutes.js`、`server/src/routes/adminRoutes.js`、`server/src/db/seed.js`（补权限码 `content:ingredient:*`）
@@ -657,7 +657,7 @@ classDiagram
   - [ ] 开封日期/有效期设置后显示剩余天数与到期提醒。
   - [ ] 使用记录时间轴展示 `start`/`stop`/`note` 事件。
 
-> **Phase B 可独立验证边界**：成分查 → 产品匹配 → 方案绑定 → 产品柜 → 使用记录 闭环可独立验证，不依赖 A/C。
+> **Phase B 可独立验证边界**：成分查 → 产品匹配 → 方案绑定 → 产品柜 → 使用记录，这条链路能单独走通，不依赖 A/C。
 
 ### Phase C：全周期健康管家
 
@@ -698,7 +698,7 @@ classDiagram
   - [ ] 随访会话用户发消息、医生回复可见、未读标记正确。
   - [ ] 我的页三入口可达。
 
-> **Phase C 可独立验证边界**：UV/季节/复测提醒 → 照片对比 → 报告时间轴 → 随访 闭环可独立验证；依赖 A 的打卡与 B 的方案数据但接口独立。
+> **Phase C 可独立验证边界**：UV/季节/复测提醒 → 照片对比 → 报告时间轴 → 随访，这条链路能单独走通。它读 A 的打卡数据和 B 的方案数据，但接口是独立的。
 
 ### 5.4 任务依赖图
 
@@ -722,15 +722,15 @@ graph LR
 
 ### 6.1 天气 / UV 数据源建议与降级
 
-- **建议数据源**：和风天气 QWeather（`https://dev.qweather.com`，有免费额度，支持 UV 指数）或 OpenWeatherMap（One Call API 含 UV）。通过 `.env` 配置：
+- 数据源：和风天气 QWeather（`https://dev.qweather.com`，有免费额度，支持 UV 指数）或 OpenWeatherMap（One Call API 含 UV）。在 `.env` 里配：
   ```
   WEATHER_PROVIDER=qweather   # qweather | mock
   WEATHER_API_KEY=
   WEATHER_CITY=北京            # 默认城市
   ```
-- **降级方案（无 Key 不阻塞）**：`WEATHER_PROVIDER=mock` 时 `EnvService.getUv` 走「内置静态 UV 规则 + 城市选择」：
-  - 城市列表存前端常量或 `skin_dict`（`dict_type='city'`），用户可切换城市。
-  - 按「月份 + 纬度档」粗估 UV 指数（北半球经验值），输出 `source:'rule'` 标记。
+- 没有 Key 也不阻塞（降级方案）：`WEATHER_PROVIDER=mock` 时 `EnvService.getUv` 走「内置静态 UV 规则 + 城市选择」：
+  - 城市列表放前端常量或 `skin_dict`（`dict_type='city'`），用户能自己切城市。
+  - 按「月份 + 纬度档」粗估 UV 指数（北半球经验值），返回时带 `source:'rule'` 标记。
 
 | UV 档 | 指数 | 防晒建议（规则） |
 |---|---|---|
@@ -761,16 +761,16 @@ graph LR
 
 ### 6.4 其他依赖说明
 
-- **微信订阅消息（可选，不阻塞）**：真实推送需小程序订阅消息 `template_id` + 用户授权，MVP 用「站内提醒卡片 + 小程序内定时展示」实现提醒效果，订阅消息作为后续可选增强。
-- **照片存储**：复用既有 `uploads/` + `multer`（`uploadSingle('file')`），与检测上传同链路，前端经 `utils/image.ts` 压缩。
-- **AI 可选增强**：肤质匹配、成分白话解读、季节自适应方案均走既有 AI 可插拔层（DeepSeek → 本地规则兜底），失败降级规则，不阻塞主流程。
+- 微信订阅消息（可选，不做也不阻塞）：真实推送要小程序的订阅消息 `template_id` 加用户授权。MVP 不做推送，先用「站内提醒卡片 + 小程序内定时展示」把提醒做出来，订阅消息留作后续可选增强。
+- 照片存储：复用既有 `uploads/` + `multer`（`uploadSingle('file')`），和检测上传同一条链路，前端用 `utils/image.ts` 压缩后再传。
+- AI 增强（可选）：肤质匹配、成分白话解读、季节自适应方案都走既有的 AI 可插拔层（DeepSeek → 本地规则兜底）。调用失败就退回规则，主流程不受影响。
 
 ---
 
 ## 7. 共享知识（增量约定）
 
 - **新表规范**：时间戳/软删除沿用 v1.0 §4.1；日志类（`usage_log`/`followup_message`/`photo_diary`）不软删除，核心业务表（`ingredients`/`user_badge` 等）按需软删除。
-- **徽章幂等**：`UNIQUE(user_id,badge_code)` + `INSERT OR IGNORE`，`grantBadges` 可在打卡后与查询时重复调用无副作用。
+- **徽章幂等**：`UNIQUE(user_id,badge_code)` + `INSERT OR IGNORE`。`grantBadges` 在打卡后和查询时重复调用，都不会产生副作用。
 - **匹配度范围**：`matchService` 输出 0–100 整数，命中成分规则加分，冲突成分减分，封顶 100、保底 0。
 - **UV 档枚举**：`low`/`moderate`/`high`/`veryHigh`；`uvIndex` 为整数。
 - **提醒 type 枚举**：`morning`/`evening`/`uv_reapply`/`recheck`/`season`。
@@ -797,4 +797,4 @@ graph LR
 
 ---
 
-*本文档为 A→B→C 三大增量实现的唯一架构依据。工程师按 §5 任务顺序实现，QA 按各任务验收标准 + Phase 边界验证。*
+*本文档是 A→B→C 三段增量唯一的架构依据。工程师按 §5 的任务顺序实现，QA 按各任务验收标准加 Phase 边界验证。*

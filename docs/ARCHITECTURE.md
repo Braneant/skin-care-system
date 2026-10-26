@@ -43,9 +43,9 @@
 
 ### 1.2 AI 层选型（本项目重点）
 
-**核心挑战**：DeepSeek 视觉模型是实验版（`deepseek-v4-flash-vision-exp`）、返回需严格 JSON、请求有成本/限流/超时风险，必须保证「无 Key / 离线 / 调用失败」时系统仍可用。
+先说难点。DeepSeek 视觉模型是实验版（`deepseek-v4-flash-vision-exp`），返回要求严格 JSON，请求本身还有成本、限流和超时的风险。所以无 Key、离线、调用失败这三种情况，都得让系统照常能用。
 
-**设计：可插拔 Provider + 编排降级**
+做法是可插拔 Provider 加一层编排降级。
 
 ```mermaid
 classDiagram
@@ -82,20 +82,20 @@ classDiagram
     SkinAnalysisService --> BaseProvider
 ```
 
-**关键约定**：
+几条约定：
 
-1. **Provider 接口统一**：所有 Provider 实现 `analyze(imageBase64, context) → Promise<SkinAnalysis>`，返回统一结构（§9.4 AI JSON Schema）。新增模型只需新增一个 Provider 类并注册到工厂。
-2. **工厂策略**：`AIProviderFactory.getProvider(type)`，`type` 取 `auto | deepseek | local`，由环境变量 `AI_PROVIDER` 控制（默认 `auto`）。`auto` = 有 `DEEPSEEK_API_KEY` 用 DeepSeek，否则本地。
-3. **视觉模型配置项化**：`deepseek-v4-flash-vision-exp` 只存在 `.env` 的 `DEEPSEEK_VISION_MODEL`，**严禁硬编码进业务代码**（模型名含 `exp`，随时可能换）。文本模型 `DEEPSEEK_CHAT_MODEL=deepseek-chat` 同理。
-4. **降级链**（详见 §6.2 时序图）：DeepSeek 调用 → 超时/限流/异常 → 重试 1 次 → 仍失败 → 解析失败/字段校验失败 → 降级 `LocalHeuristicProvider`，返回 `engine:'local'` + `degraded:true` 标记。
-5. **图片前置处理**：上传后先经 `sharp` 压缩（最长边 800px、JPEG q80）；校验尺寸/大小/格式（JPEG/PNG/GIF/WebP），过大或画质异常直接拦截返回业务错误码（对应 PRD 待确认 #3）。
-6. **结构化输出**：prompt 强制「仅返回 JSON，不要 Markdown 代码块」；服务端 `JSON.parse` + 字段校验（`skinType/score/riskLevel/dimensions/issues` 必填、类型正确、分数 0–100），失败走重试/降级。
+1. Provider 接口统一。所有 Provider 都实现 `analyze(imageBase64, context) → Promise<SkinAnalysis>`，返回同一个结构（§9.4 AI JSON Schema）。以后要接新模型，写一个 Provider 类注册进工厂就行。
+2. 工厂策略。`AIProviderFactory.getProvider(type)` 的 `type` 取 `auto | deepseek | local`，由环境变量 `AI_PROVIDER` 控制，默认 `auto`。`auto` 的含义是：有 `DEEPSEEK_API_KEY` 就走 DeepSeek，没有就用本地。
+3. 视觉模型名做成配置项。`deepseek-v4-flash-vision-exp` 只出现在 `.env` 的 `DEEPSEEK_VISION_MODEL` 里，不要硬编码进业务代码（模型名带 `exp`，随时可能换）。文本模型 `DEEPSEEK_CHAT_MODEL=deepseek-chat` 同理。
+4. 降级链（详见 §6.2 时序图）。DeepSeek 调用遇到超时、限流或异常，重试 1 次；仍然失败，或者返回解析不了、字段校验不过，就降级到 `LocalHeuristicProvider`，返回时带上 `engine:'local'` 和 `degraded:true` 标记。
+5. 图片先处理再送模型。上传后先用 `sharp` 压缩（最长边 800px、JPEG q80），再校验尺寸、大小和格式（JPEG/PNG/GIF/WebP）。过大或画质异常的直接拦掉，返回业务错误码（对应 PRD 待确认 #3）。
+6. 结构化输出。prompt 里写明只返回 JSON，不要 Markdown 代码块；服务端拿到后 `JSON.parse`，再校验字段（`skinType/score/riskLevel/dimensions/issues` 必填、类型正确、分数 0–100），不通过就走重试或降级。
 
 ### 1.3 架构模式
 
-- **后端**：分层架构（路由 → 控制器 → 服务 → 数据访问仓库），无重 ORM，DAO 用 `better-sqlite3` 预编译语句，简单、可测、迁移成本低。
-- **管理端**：MVVM（Vue3 Composition API + Pinia）+ 动态路由 + RBAC 路由守卫。
-- **小程序端**：MVVM（uni-app 页面 + Pinia），请求统一封装。
+- 后端走分层架构（路由 → 控制器 → 服务 → 数据访问仓库）。不上重型 ORM，DAO 直接用 `better-sqlite3` 的预编译语句，写起来简单，也好测。
+- 管理端是 MVVM（Vue3 Composition API + Pinia），配动态路由和 RBAC 路由守卫。
+- 小程序端同样是 MVVM（uni-app 页面 + Pinia），请求统一封装。
 
 ---
 
@@ -331,12 +331,12 @@ skin_care_system/
 
 ### 4.1 建表要点（全局约定）
 
-- **时间戳**：统一 `TEXT` 存 ISO 8601 UTC（`new Date().toISOString()`），`created_at/updated_at` 每表必备。
-- **软删除**：核心业务表（用户/内容/建议等）设 `deleted_at TEXT`，查询默认 `WHERE deleted_at IS NULL`，物理不删。
-- **外键**：SQLite 默认关闭外键约束，连接时 `PRAGMA foreign_keys = ON` 开启；迁移 MySQL 时保留 `FOREIGN KEY` 声明（可平滑迁移）。
-- **布尔/状态**：用 `INTEGER`（0/1）或短 `TEXT` 枚举。
-- **JSON 字段**：复杂结构（问题列表、Routine、四维得分、AI 原始返回）以 `TEXT` 存 JSON 字符串，读出时 `JSON.parse`。
-- **索引**：外键列、高频筛选列（`openid`、`user_id`、`checkin_date`、`status`、`publish_at`）建索引。
+- 时间戳一律用 `TEXT` 存 ISO 8601 UTC（`new Date().toISOString()`），每张表都有 `created_at/updated_at`。
+- 核心业务表（用户、内容、建议等）加 `deleted_at TEXT` 做软删除，查询默认带 `WHERE deleted_at IS NULL`，不做物理删除。
+- SQLite 默认不启用外键约束，连接时用 `PRAGMA foreign_keys = ON` 打开。迁到 MySQL 时保留 `FOREIGN KEY` 声明，方言层面可以平滑迁移。
+- 布尔和状态用 `INTEGER`（0/1）或短的 `TEXT` 枚举。
+- 复杂结构（问题列表、Routine、四维得分、AI 原始返回）用 `TEXT` 存 JSON 字符串，读出时 `JSON.parse`。
+- 外键列和高频筛选列（`openid`、`user_id`、`checkin_date`、`status`、`publish_at`）建索引。
 
 ### 4.2 表结构（19 张表）
 
@@ -607,7 +607,7 @@ erDiagram
     detect_records ||--o{ advice : "关联建议"
 ```
 
-**关系要点**：
+几点关系说明：
 - `wx_users` 与 `admin_users` 物理分表、零关联（双鉴权隔离的核心）。
 - `admin_users` 与 `roles` 多对多（`admin_user_roles`）；`roles` 与 `permissions` 多对多（`role_permissions`）。
 - `permissions` 自关联（`parent_id`）构成菜单/权限树。
@@ -619,9 +619,9 @@ erDiagram
 
 ### 5.1 统一响应与鉴权中间件挂载
 
-**统一响应结构**：`{ code, msg, data }`，`code = 0` 成功，非 0 失败（错误码见 §9.2）。
+统一响应结构是 `{ code, msg, data }`，`code = 0` 成功，非 0 失败（错误码见 §9.2）。
 
-**双前缀路由分组**（`src/routes/index.js` 聚合）：
+路由按双前缀分组，在 `src/routes/index.js` 里聚合：
 
 ```js
 // app.js 挂载
@@ -644,10 +644,10 @@ router.get('/dashboard/summary', requirePermission('dashboard:view'), dashboardC
 // ...其余 admin 路由，按需 requirePermission('xxx:yyy')
 ```
 
-**鉴权头约定**：
-- 小程序端：请求头 `Wx-Authorization: Bearer <token>`（token 签发自 `wx_users`）。
-- 管理端/医生端：请求头 `Authorization: Bearer <token>`（token 签发自 `admin_users`）。
-- 两者物理隔离，互不通用，越权/串用一律 401。
+两端的鉴权头是分开的：
+- 小程序端用 `Wx-Authorization: Bearer <token>`，token 签发自 `wx_users`。
+- 管理端和医生端用 `Authorization: Bearer <token>`，token 签发自 `admin_users`。
+- 两者物理隔离，互不通用，越权或串用一律 401。
 
 ### 5.2 关键接口 JSON 示例
 
@@ -755,7 +755,7 @@ router.get('/dashboard/summary', requirePermission('dashboard:view'), dashboardC
 
 ### 5.3 API 全量清单
 
-PRD 已列约 50 个接口，本设计在其上**补全**以下说明，实现时以 PRD §7 为准，缺省补充如下：
+PRD 已列约 50 个接口，下面补的是本设计新增、或者需要单独说明的部分。实现时以 PRD §7 为准，PRD 没写到的地方按这里来：
 
 - `GET /api/admin/permissions`：返回权限树（RBAC 配置页用）。
 - `DELETE /api/admin/roles/:id`：删除角色（PRD 未列，补齐 CRUD）。
@@ -1002,7 +1002,7 @@ sequenceDiagram
 - express-validator@^7.2.0     # 参数校验
 ```
 
-> 说明：`sharp` 有原生依赖，若安装失败可用纯 JS `jimp@^0.22` 替换（`imageUtils.js` 内部隔离，业务无感）。
+> 说明：`sharp` 带原生依赖，装不上可以换成纯 JS 的 `jimp@^0.22`。替换范围只在 `imageUtils.js` 内部，上层不用改。
 
 ### 8.2 管理端 `admin-web/`（npm）
 
@@ -1037,7 +1037,7 @@ sequenceDiagram
 ## 9. 共享知识（跨文件约定）
 
 ### 9.1 统一响应结构
-所有接口返回 `{ code, msg, data }`；`code=0` 成功，非 0 失败；`msg` 为可读提示；`data` 为业务数据（成功时可能为 `null`）。后端通过 `res.ok(data)` / `res.fail(code, msg)` 生成，**控制器内禁止直接 `res.json`**。
+所有接口返回 `{ code, msg, data }`；`code=0` 成功，非 0 失败；`msg` 是可读提示；`data` 放业务数据（成功时也可能是 `null`）。这些都由后端的 `res.ok(data)` / `res.fail(code, msg)` 生成，控制器里不要直接写 `res.json`。
 
 ### 9.2 错误码约定
 | code | 含义 |
